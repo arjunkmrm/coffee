@@ -1,113 +1,150 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState } from 'react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Plane, MapPin, Calendar, MessageCircle, Send, Menu, X, Coffee, BookOpen } from 'lucide-react'
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { User, Bot } from 'lucide-react'
+import { Playfair_Display } from 'next/font/google'
+
+const playfair = Playfair_Display({ subsets: ['latin'] })
+
+export default function Component() {
+  const [chatMessages, setChatMessages] = useState([
+    { text: "Welcome to TravelJournal! How can I assist you with your travel plans today?", isUser: false },
+  ])
+  const [inputMessage, setInputMessage] = useState("")
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+
+  const sendMessage = async () => {
+    if (inputMessage.trim() !== "") {
+      const newUserMessage = { text: inputMessage, isUser: true };
+      setChatMessages(prev => [...prev, newUserMessage]);
+      setInputMessage("");
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [
+              { role: 'user', content: 'Hello, I need help with travel planning.' },
+              ...chatMessages.map(msg => ({
+                role: msg.isUser ? 'user' : 'assistant',
+                content: msg.text
+              })),
+              { role: 'user', content: inputMessage }
+            ]
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        setChatMessages(prev => [...prev, { text: data.reply, isUser: false }]);
+      } catch (error) {
+        console.error('Error sending message:', error);
+        setChatMessages(prev => [...prev, { text: "Sorry, there was an error processing your request.", isUser: false }]);
+      }
+    }
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className={`min-h-screen bg-[#f5e6d3] flex flex-col ${playfair.className}`}>
+      <nav className="p-4 flex justify-between items-center border-b border-[#d2b48c]">
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="mr-2">
+            {isSidebarOpen ? <X className="h-6 w-6 text-[#4a3728]" /> : <Menu className="h-6 w-6 text-[#4a3728]" />}
+          </Button>
+          <h1 className="text-2xl font-bold text-[#4a3728] flex items-center">
+            <BookOpen className="h-6 w-6 mr-2" /> TravelJournal
+          </h1>
+        </div>
+        <div className="flex space-x-4">
+          <Button variant="ghost" className="text-[#4a3728]">Memories</Button>
+          <Button variant="ghost" className="text-[#4a3728]">Itineraries</Button>
+          <Button variant="ghost" className="text-[#4a3728]">Profile</Button>
+        </div>
+      </nav>
+      
+      <div className="flex flex-1 overflow-hidden">
+        {/* Collapsible Sidebar */}
+        <div className={`bg-[#e6d2b5] transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-80' : 'w-0'} overflow-hidden`}>
+          <Card className="h-full rounded-none border-none bg-transparent">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-[#4a3728]">Travel Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Plane className="text-[#4a3728] flex-shrink-0" />
+                  <Input placeholder="Dream destination" className="bg-[#f5e6d3] border-[#4a3728]" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <MapPin className="text-[#4a3728] flex-shrink-0" />
+                  <Input placeholder="Starting point" className="bg-[#f5e6d3] border-[#4a3728]" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Calendar className="text-[#4a3728] flex-shrink-0" />
+                  <Input type="date" placeholder="Journey dates" className="bg-[#f5e6d3] border-[#4a3728]" />
+                </div>
+                <Button className="w-full bg-[#4a3728] text-[#f5e6d3] hover:bg-[#6b5a47]">Plan Adventure</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Chat Area */}
+        <div className="flex-1 p-4 overflow-hidden flex flex-col">
+          <Card className="flex-1 overflow-hidden flex flex-col bg-[#f5e6d3] border-none shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-[#4a3728] flex items-center">
+                <Coffee className="h-6 w-6 mr-2" /> Travel Companion
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 overflow-hidden flex flex-col">
+              <div className="flex-1 overflow-y-auto mb-4 space-y-4 p-4" style={{ backgroundImage: "linear-gradient(to bottom, #f5e6d3 0%, #f5e6d3 100%), repeating-linear-gradient(#f5e6d3, #f5e6d3 28px, #e6d2b5 28px, #e6d2b5 29px)" }}>
+                {chatMessages.map((message, index) => (
+                  <div key={index} className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`flex items-start ${message.isUser ? 'flex-row-reverse' : ''}`}>
+                      <Avatar className="w-8 h-8 mr-2">
+                        <AvatarFallback className={message.isUser ? "bg-[#4a3728]" : "bg-[#d2b48c]"}>
+                          {message.isUser ? (
+                            <User className="h-4 w-4 text-[#f5e6d3]" />
+                          ) : (
+                            <Bot className="h-4 w-4 text-[#4a3728]" />
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className={`rounded-lg p-3 max-w-[80%] ${message.isUser ? 'bg-[#4a3728] text-[#f5e6d3]' : 'bg-[#d2b48c] text-[#4a3728]'}`}>
+                        {message.text}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex space-x-2">
+                <Input 
+                  placeholder="Jot down your thoughts..." 
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  className="bg-[#f5e6d3] border-[#4a3728]"
+                />
+                <Button onClick={sendMessage} className="bg-[#4a3728] text-[#f5e6d3] hover:bg-[#6b5a47]">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  );
+    </div>
+  )
 }
